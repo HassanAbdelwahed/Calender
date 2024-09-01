@@ -1,11 +1,12 @@
 package com.example.demo;
 
+import com.example.demo.Repository.CalenderRepository;
 import com.example.demo.model.Appointment;
 import com.example.demo.service.CalenderService;
 import com.example.demo.util.ResponseData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SpringBootTest
 public class ApplicationTest {
 
+    @Autowired
     private CalenderService calenderService;
 
     @BeforeEach
     void setUp() {
-        calenderService = new CalenderService();
     }
 
     // test cases for Add Appointment

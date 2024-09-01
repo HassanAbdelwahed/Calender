@@ -7,13 +7,12 @@ import lombok.Setter;
 @Data
 @Setter
 @Getter
-public class ResponseData<T> {
+public class ResponseData<T> extends ResponseDataOrError<T> {
 
     private T data;
-    private String message;
 
     public ResponseData(T data, String message) {
+        super(message);
         this.data = data;
-        this.message = message;
     }
 }
