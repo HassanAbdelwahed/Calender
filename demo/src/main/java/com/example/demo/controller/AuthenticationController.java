@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 
 import com.example.demo.service.AuthenticationService;
+import com.example.demo.service.Interface.AuthenticationServiceInterface;
 import com.example.demo.util.AuthenticationResponse;
 import com.example.demo.util.LoginUserDto;
 import com.example.demo.util.RegisterUserDto;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthenticationController {
 
     @Autowired
-    private AuthenticationService authenticationService;
+    private AuthenticationServiceInterface authenticationService;
 
     @PostMapping("signUp")
     public ResponseEntity<AuthenticationResponse> signup(@RequestBody RegisterUserDto registerUserDto) {

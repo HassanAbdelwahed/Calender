@@ -1,18 +1,19 @@
 package com.example.demo.util;
 
-import lombok.Data;
+import com.example.demo.util.utilInterfaces.Response;
 import lombok.Getter;
 import lombok.Setter;
 
-@Data
 @Setter
 @Getter
-public class ResponseData<T> extends ResponseDataOrError<T> {
+public class ResponseData<T> implements Response<T> {
 
     private T data;
 
+    private String message;
+
     public ResponseData(T data, String message) {
-        super(message);
         this.data = data;
+        this.message = message;
     }
 }

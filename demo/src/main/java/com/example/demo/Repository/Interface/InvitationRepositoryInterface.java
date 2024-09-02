@@ -5,9 +5,11 @@ import com.example.demo.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+@Repository
 public interface InvitationRepositoryInterface extends JpaRepository<Invitation, Long> {
 
     @Query("SELECT i FROM Invitation i " +
@@ -16,5 +18,5 @@ public interface InvitationRepositoryInterface extends JpaRepository<Invitation,
             "AND i.status != ACCEPTED " +
             "AND i.status != REJECTED " +
             "AND i.status != REFUSED")
-    List<Invitation> findUserInvitations(@Param("user") User user);
+    List<Invitation> findAllInvitations(@Param("user") User user);
 }

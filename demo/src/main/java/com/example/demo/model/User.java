@@ -38,10 +38,10 @@ public class User implements UserDetails {
     @Column(updatable = false, name = "created_at")
     private Date createdAt;
 
-    @OneToMany(mappedBy = "appointmentOwner")
+    @OneToMany(mappedBy = "appointmentOwner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Appointment> appointments;
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Invitation> invitations;
 
     @Override

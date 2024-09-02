@@ -16,7 +16,7 @@ public class Invitation {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(nullable = false)
-    private int id;
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name="appointment_id")

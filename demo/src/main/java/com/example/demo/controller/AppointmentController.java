@@ -2,9 +2,9 @@ package com.example.demo.controller;
 
 
 import com.example.demo.model.Appointment;
-import com.example.demo.service.AppointmentService;
+import com.example.demo.service.Interface.AppointmentServiceInterface;
 import com.example.demo.util.AppointmentRequest;
-import com.example.demo.util.ResponseDataOrError;
+import com.example.demo.util.utilInterfaces.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,15 +16,15 @@ import java.util.List;
 public class AppointmentController {
 
     @Autowired
-    private AppointmentService appointmentService;
+    private AppointmentServiceInterface appointmentService;
 
     @PostMapping
-    public ResponseEntity<ResponseDataOrError<?>> createAppointment(@RequestBody AppointmentRequest appointmentRequest) {
+    public ResponseEntity<Response<?>> createAppointment(@RequestBody AppointmentRequest appointmentRequest) {
         return appointmentService.createAppointment(appointmentRequest);
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ResponseDataOrError<?>> cancelAppointment(@PathVariable("id") long id) {
+    public ResponseEntity<Response<?>> cancelAppointment(@PathVariable("id") long id) {
         return appointmentService.cancelAppointment(id);
     }
 

@@ -69,4 +69,13 @@ public class Util {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return (User) authentication.getPrincipal();
     }
+
+    public static boolean isValidTime(Appointment appointment) {
+        if (appointment.getDate().isBefore(LocalDate.now()))
+            return false;
+        if (appointment.getDate().isEqual(LocalDate.now()) && appointment.getFrom().isBefore(LocalTime.now())) {
+            return false;
+        }
+        return true;
+    }
 }
