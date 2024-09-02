@@ -3,6 +3,7 @@ package com.example.demo;
 
 import com.example.demo.Repository.Interface.AppointmentRepositoryInterface;
 import com.example.demo.Repository.Interface.UserRepository;
+import com.example.demo.exceptionHandling.BadRequestException;
 import com.example.demo.exceptionHandling.ResourceNotFoundException;
 import com.example.demo.model.Appointment;
 import com.example.demo.model.Invitation;
@@ -31,6 +32,8 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
@@ -73,7 +76,7 @@ public class AppointmentTest {
         when(appointmentRepository.findUserAppointments(any(), any())).thenReturn(appointments);
         when(appointmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        try (MockedStatic<Util> mockedStatic = Mockito.mockStatic(Util.class)) {
+        try (MockedStatic<Util> mockedStatic = mockStatic(Util.class)) {
             mockedStatic.when(Util::getCurrentAuthenticatedUser).thenReturn(user);
             mockedStatic.when(() -> Util.isConflict(any(), any())).thenReturn(false);
 
@@ -102,7 +105,7 @@ public class AppointmentTest {
                 .to(LocalTime.of(11, 0))
                 .build();
 
-        try (MockedStatic<Util> mockedUtil = Mockito.mockStatic(Util.class)) {
+        try (MockedStatic<Util> mockedUtil = mockStatic(Util.class)) {
             mockedUtil.when(Util::getCurrentAuthenticatedUser).thenReturn(new User());
             ResponseEntity<Response<?>> response = appointmentService.createAppointment(request);
 
@@ -127,7 +130,7 @@ public class AppointmentTest {
                         .to(LocalTime.of(11, 0))
                                 .build();
 
-        try (MockedStatic<Util> mockedUtil = Mockito.mockStatic(Util.class)) {
+        try (MockedStatic<Util> mockedUtil = mockStatic(Util.class)) {
             mockedUtil.when(Util::getCurrentAuthenticatedUser).thenReturn(this.testUser);
             mockedUtil.when(() -> Util.isConflict(any(), any())).thenReturn(true);
 
@@ -147,7 +150,7 @@ public class AppointmentTest {
     void cancelAppointment_ShouldThrowResourceNotFoundException_WhenAppointmentDoesNotExist() {
         long appointmentId = 1L;
         when(appointmentRepository.findById(appointmentId)).thenReturn(Optional.empty());
-        try (MockedStatic<Util> mockedUtil = Mockito.mockStatic(Util.class)) {
+        try (MockedStatic<Util> mockedUtil = mockStatic(Util.class)) {
             mockedUtil.when(Util::getCurrentAuthenticatedUser).thenReturn(this.testUser);
             assertThrows(ResourceNotFoundException.class, () -> appointmentService.cancelAppointment(appointmentId));
         }
@@ -169,7 +172,7 @@ public class AppointmentTest {
 
         when(appointmentRepository.findById(appointmentId)).thenReturn(Optional.of(appointment));
 
-        try (MockedStatic<Util> mockedUtil = Mockito.mockStatic(Util.class)) {
+        try (MockedStatic<Util> mockedUtil = mockStatic(Util.class)) {
             mockedUtil.when(Util::getCurrentAuthenticatedUser).thenReturn(this.testUser);
 
             ResponseEntity<Response<?>> response = appointmentService.cancelAppointment(appointmentId);
@@ -192,7 +195,7 @@ public class AppointmentTest {
                 .build();
         when(appointmentRepository.findById(appointmentId)).thenReturn(Optional.of(appointment));
 
-        try (MockedStatic<Util> mockedUtil = Mockito.mockStatic(Util.class)) {
+        try (MockedStatic<Util> mockedUtil = mockStatic(Util.class)) {
             mockedUtil.when(Util::getCurrentAuthenticatedUser).thenReturn(this.testUser);
 
             ResponseEntity<Response<?>> response = appointmentService.cancelAppointment(appointmentId);
@@ -231,7 +234,7 @@ public class AppointmentTest {
         when(appointmentRepository.findById(appointmentId)).thenReturn(Optional.of(appointment));
         when(appointmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        try (MockedStatic<Util> mockedStatic = Mockito.mockStatic(Util.class)) {
+        try (MockedStatic<Util> mockedStatic = mockStatic(Util.class)) {
             mockedStatic.when(Util::getCurrentAuthenticatedUser).thenReturn(this.testUser);
 
             ResponseEntity<Response<?>> response = appointmentService.cancelAppointment(appointmentId);
@@ -304,6 +307,26 @@ public class AppointmentTest {
     }
 
     @Test
+    void testIsConflict_withinExistingAppointment() {
+        Appointment existingAppointment = Appointment.builder()
+                .date(LocalDate.now().plusDays(1))
+                .from(LocalTime.of(9, 0))
+                .to(LocalTime.of(11, 0))
+                .appointmentOwner(this.testUser)
+                .build();
+        List<Appointment> appointments = List.of(existingAppointment);
+
+        Appointment newAppointment = Appointment.builder()
+                .date(LocalDate.now().plusDays(1))
+                .from(LocalTime.of(10, 30))
+                .to(LocalTime.of(11, 30))
+                .appointmentOwner(this.testUser)
+                .build();
+
+        assertTrue(Util.isConflict(appointments, newAppointment));
+    }
+
+    @Test
     void testIsConflict_surroundingExistingAppointment() {
         Appointment existingAppointment = Appointment.builder()
                 .date(LocalDate.now().plusDays(1))
@@ -325,4 +348,136 @@ public class AppointmentTest {
         assertTrue(Util.isConflict(appointments, newAppointment));
     }
 
+
+    // test cases for checkInvitees
+
+    @Test
+    void testCheckInvitees_allAvailable() {
+        try (MockedStatic<Util> mockedUtil = mockStatic(Util.class)) {
+            Appointment appointment = Appointment.builder()
+                    .date(LocalDate.now().plusDays(1))
+                    .from(LocalTime.of(9, 0))
+                    .to(LocalTime.of(12, 0))
+                    .appointmentOwner(this.testUser)
+                    .build();
+
+            List<String> list = List.of("invitee1@example.com", "invitee2@example.com");
+            AppointmentRequest request = AppointmentRequest.builder()
+                    .date(LocalDate.now().plusDays(1))
+                    .from(LocalTime.of(10, 0))
+                    .to(LocalTime.of(11, 0))
+                    .inviteesEmails(list)
+                    .build();
+
+            User invitee1 = User.builder().id(2L).email("invitee1@example.com").build();
+            User invitee2 = User.builder().id(3L).email("invitee2@example.com").build();
+
+            when(userRepository.findByEmail("invitee1@example.com")).thenReturn(Optional.of(invitee1));
+            when(userRepository.findByEmail("invitee2@example.com")).thenReturn(Optional.of(invitee2));
+            when(appointmentRepository.findUserAppointments(invitee1, appointment.getDate())).thenReturn(List.of());
+            when(appointmentRepository.findUserAppointments(invitee2, appointment.getDate())).thenReturn(List.of());
+
+            mockedUtil.when(() -> Util.isConflict(any(), any(Appointment.class))).thenReturn(false);
+            List<Invitation> invitations = appointmentService.checkInvitees(request, appointment);
+
+            // Assert
+            assertEquals(2, invitations.size());
+            assertEquals(InvitationStatus.AVAILABLE, invitations.get(0).getStatus());
+            assertEquals(InvitationStatus.AVAILABLE, invitations.get(1).getStatus());
+        }
+    }
+
+    @Test
+    void testCheckInvitees_someConflicted() {
+        try (MockedStatic<Util> mockedUtil = mockStatic(Util.class)) {
+            // Setup
+            Appointment appointment = Appointment.builder()
+                    .date(LocalDate.now().plusDays(1))
+                    .from(LocalTime.of(9, 0))
+                    .to(LocalTime.of(12, 0))
+                    .appointmentOwner(this.testUser)
+                    .build();
+
+            List<String> list = List.of("invitee1@example.com", "invitee2@example.com");
+            AppointmentRequest request = AppointmentRequest.builder()
+                    .date(LocalDate.now().plusDays(1))
+                    .from(LocalTime.of(10, 0))
+                    .to(LocalTime.of(11, 0))
+                    .inviteesEmails(list)
+                    .build();
+
+            User invitee1 = User.builder().id(2L).email("invitee1@example.com").build();
+            User invitee2 = User.builder().id(3L).email("invitee2@example.com").build();
+
+            Appointment conflictAppointment = Appointment.builder()
+                    .date(appointment.getDate())
+                    .from(LocalTime.of(9, 30))
+                    .to(LocalTime.of(10, 30))
+                    .appointmentOwner(invitee1)
+                    .build();
+
+            when(userRepository.findByEmail("invitee1@example.com")).thenReturn(Optional.of(invitee1));
+            when(userRepository.findByEmail("invitee2@example.com")).thenReturn(Optional.of(invitee2));
+            when(appointmentRepository.findUserAppointments(invitee1, appointment.getDate())).thenReturn(List.of(conflictAppointment));
+            when(appointmentRepository.findUserAppointments(invitee2, appointment.getDate())).thenReturn(List.of());
+
+            mockedUtil.when(() -> Util.isConflict(any(), eq(appointment))).thenReturn(true, false);
+
+            // Act
+            List<Invitation> invitations = appointmentService.checkInvitees(request, appointment);
+
+            // Assert
+            assertEquals(2, invitations.size());
+            assertEquals(InvitationStatus.CONFLICTED, invitations.get(0).getStatus());
+            assertEquals(InvitationStatus.AVAILABLE, invitations.get(1).getStatus());
+        }
+    }
+
+
+    @Test
+    void testCheckInvitees_userNotFound() {
+        // Setup
+        Appointment appointment = Appointment.builder()
+                .date(LocalDate.now().plusDays(1))
+                .from(LocalTime.of(9, 0))
+                .to(LocalTime.of(12, 0))
+                .appointmentOwner(this.testUser)
+                .build();
+
+        List<String> list = List.of("invitee1@example.com", "invitee2@example.com");
+        AppointmentRequest request = AppointmentRequest.builder()
+                .date(LocalDate.now().plusDays(1))
+                .from(LocalTime.of(10, 0))
+                .to(LocalTime.of(11, 0))
+                .inviteesEmails(list)
+                .build();
+
+        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+
+        assertThrows(BadRequestException.class, () -> appointmentService.checkInvitees(request, appointment));
+    }
+
+    @Test
+    void testCheckInvitees_noInvitees() {
+        Appointment appointment = Appointment.builder()
+                .date(LocalDate.now().plusDays(1))
+                .from(LocalTime.of(9, 0))
+                .to(LocalTime.of(12, 0))
+                .appointmentOwner(this.testUser)
+                .build();
+
+        List<String> list = List.of("invitee1@example.com", "invitee2@example.com");
+        AppointmentRequest request = AppointmentRequest.builder()
+                .date(LocalDate.now().plusDays(1))
+                .from(LocalTime.of(10, 0))
+                .to(LocalTime.of(11, 0))
+                .inviteesEmails(list)
+                .build();
+
+        List<Invitation> invitations = appointmentService.checkInvitees(request, appointment);
+
+        assertEquals(0, invitations.size());
+    }
+
 }
+
